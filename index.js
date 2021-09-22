@@ -1,11 +1,14 @@
-const { Engine, Render, Runner, Bodies, Composite } = Matter;
+const { Engine, Render, Runner, Bodies, Composite, Body, Events } = Matter;
 
 const engine = Engine.create();
+engine.world.gravity.y = 0;
 const { world } = engine;
 
 const cells = 3;
 const width = 600;
 const height = 600;
+
+const unitLength = width / cells;
 
 const render = Render.create({
   element: document.body,
@@ -21,32 +24,17 @@ Render.run(render);
 const runner = Runner.create();
 Runner.run(runner, engine);
 
-// bodies follow the pattern: (X, Y, WIDTH, HEIGHT)
 // Walls
+// bodies follow the pattern: (X, Y, WIDTH, HEIGHT)
 const walls = [
-  Bodies.rectangle(width / 2, 0, width, 40, { isStatic: true }),
-  Bodies.rectangle(width / 2, height, width, 40, { isStatic: true }),
-  Bodies.rectangle(0, height / 2, 40, height, { isStatic: true }),
-  Bodies.rectangle(width, height / 2, 40, height, { isStatic: true }),
+  Bodies.rectangle(width / 2, 0, width, 2, { isStatic: true }),
+  Bodies.rectangle(width / 2, height, width, 2, { isStatic: true }),
+  Bodies.rectangle(0, height / 2, 2, height, { isStatic: true }),
+  Bodies.rectangle(width, height / 2, 2, height, { isStatic: true }),
 ];
 Composite.add(world, walls);
 
 // Maze generation ---
-// const shuffle = (arr) => {
-//   let counter = arr.length;
-
-//   while (counter > 0) {
-//     const index = Math.floor(Math.random() * counter);
-
-//     counter--;
-
-//     const temp = arr[counter];
-//     arr[counter] = arr[index];
-//     arr[index] = temp;
-//   }
-
-//   return arr;
-// };
 
 // Fisher-Yates array shuffle
 // https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
@@ -69,6 +57,7 @@ const shuffle = (arr) => {
 
 // grid keeps track of visited status
 // verticals & horizontals keep track of their respected wall openeness
+// false = a wall exists
 const grid = Array(cells)
   .fill(null)
   .map(() => Array(cells).fill(false));
@@ -129,8 +118,97 @@ const stepThroughCell = (row, column) => {
     } else if (direction === "down") {
       horizontals[row][column] = true;
     }
+
+    stepThroughCell(nextRow, nextColumn);
   }
   // TODO: visit that cell
 };
 
 stepThroughCell(startRow, startColumn);
+
+// adding wall to canvas
+// bodies follow the pattern: (X, Y, WIDTH, HEIGHT)
+horizontals.forEach((row, rowIndex) => {
+  row.forEach((open, columnIndex) => {
+    if (open) return;
+    else {
+      const wall = Bodies.rectangle(
+        columnIndex * unitLength + unitLength / 2,
+        rowIndex * unitLength + unitLength,
+        unitLength,
+        1,
+        { isStatic: true }
+      );
+      Composite.add(world, wall);
+    }
+  });
+});
+
+verticals.forEach((row, rowIndex) => {
+  row.forEach((open, columnIndex) => {
+    if (open) return;
+    else {
+      const wall = Bodies.rectangle(
+        columnIndex * unitLength + unitLength,
+        rowIndex * unitLength + unitLength / 2,
+        1,
+        unitLength,
+        { isStatic: true }
+      );
+      Composite.add(world, wall);
+    }
+  });
+});
+
+// Goal
+const goal = Bodies.rectangle(
+  width - unitLength / 2,
+  height - unitLength / 2,
+  unitLength * 0.6,
+  unitLength * 0.6,
+  {
+    label: "goal",
+    isStatic: true,
+  }
+);
+Composite.add(world, goal);
+
+// Player
+const ball = Bodies.circle(unitLength / 2, unitLength / 2, unitLength / 4, {
+  label: "ball",
+});
+Composite.add(world, ball);
+
+// Controls
+document.addEventListener("keydown", (event) => {
+  const { x, y } = ball.velocity;
+
+  if (event.code === "KeyW" || event.code === "ArrowUp") {
+    Body.setVelocity(ball, { x, y: y - 5 });
+  }
+
+  if (event.code === "KeyD" || event.code === "ArrowRight") {
+    Body.setVelocity(ball, { x: x + 5, y });
+  }
+
+  if (event.code === "KeyS" || event.code === "ArrowDown") {
+    Body.setVelocity(ball, { x, y: y + 5 });
+  }
+
+  if (event.code === "KeyA" || event.code === "ArrowLeft") {
+    Body.setVelocity(ball, { x: x - 5, y });
+  }
+});
+
+// Win Condition
+Events.on(engine, "collisionStart", (event) => {
+  event.pairs.forEach((collision) => {
+    const labels = ["ball", "goal"];
+    if (
+      labels.includes(collision.bodyA.label) &&
+      labels.includes(collision.bodyB.label)
+    ) {
+      console.log("WINRAR");
+    }
+  });
+});
