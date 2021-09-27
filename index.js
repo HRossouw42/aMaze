@@ -198,6 +198,7 @@ const startGame = (difficulty) => {
   const ballRadius = Math.min(unitLengthX, unitLengthY) / 4;
   const ball = Bodies.circle(unitLengthX / 2, unitLengthY / 2, ballRadius, {
     label: "ball",
+    restitution: 0.5,
     render: { fillStyle: "Gold" },
   });
   Composite.add(world, ball);
@@ -235,7 +236,7 @@ const startGame = (difficulty) => {
         labels.includes(collision.bodyB.label)
       ) {
         document.querySelector(".winner").classList.remove("hidden");
-        world.gravity.y = 0.5;
+        world.gravity.y = 0.2;
         world.bodies.forEach((body) => {
           if (body.label === "wall") {
             Body.setStatic(body, false);
