@@ -1,5 +1,7 @@
 # aMaze 🧱
 
+[Play in your browser](https://hrossouw42.github.io/aMaze/)
+
 ## The pitch 🎯
 
 Play a maze game in your desktop browser, no matter the screen size!
